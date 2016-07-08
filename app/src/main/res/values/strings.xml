@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">NearBeer</string>
+    <string name="beer_activity_title">Beer Info</string>
+    <string name="action_refresh">refresh</string>
+</resources>
