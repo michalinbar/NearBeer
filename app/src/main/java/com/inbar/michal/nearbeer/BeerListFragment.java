@@ -3,16 +3,24 @@ package com.inbar.michal.nearbeer;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.text.format.Time;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -24,16 +32,64 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.zip.Inflater;
 
 /**
  * Created by Michal on 05/07/2016.
  */
 public class BeerListFragment extends Fragment {
+
+    ArrayAdapter<String> beerListAdapter;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
 
+    }
+
+      /*
+
+    final ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(this,
+            R.layout.list_item_textview, nearList);
+
+    ListView listView = (ListView) findViewById(R.id.listview_nearby);
+    listView.setAdapter(listAdapter);
+    listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            // Toast.makeText(MainActivity.this, "Position=" + position, Toast.LENGTH_SHORT).show();
+            String item = listAdapter.getItem(position);
+            Intent intent = new Intent(MainActivity.this, BeerActivity.class);
+            //  Intent intent = new Intent(getActivity(), DetailActivity.class);
+            intent.putExtra(Intent.EXTRA_TEXT, item);
+            startActivity(intent);
+        }  });
+    */
+    @Nullable
+    @Override
+    public View onCreateView(final LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+      //  beerListAdapter = new ArrayAdapter<String>(getContext(), R.layout.fragment_beer_list,
+        //        R.id.item_textview, ) {
+        beerListAdapter = new ArrayAdapter<String>(getContext(), R.layout.list_item_textview,
+                        R.id.item_textview);
+
+
+        View rootView = inflater.inflate(R.layout.fragment_beer_list, container, false);
+        ListView listView = (ListView) rootView.findViewById(R.id.listview_nearby);
+        listView.setAdapter(beerListAdapter);
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String item = (String)parent.getItemAtPosition(position);
+                Intent intent = new Intent(getActivity(), BeerActivity.class);
+                intent.putExtra(Intent.EXTRA_TEXT, item);
+                startActivity(intent);
+            }
+        });
+        return rootView;
     }
 
     @Override
@@ -50,8 +106,13 @@ public class BeerListFragment extends Fragment {
         return super.onOptionsItemSelected(item);
     }
 
-    private void getBeerList() {
+    @Override
+    public void onStart() {
+        super.onStart();
+        getBeerList();
+    }
 
+    private void getBeerList() {
         new AsyncDataFetcher().execute();
     }
 
@@ -61,10 +122,13 @@ public class BeerListFragment extends Fragment {
         private final String LOG_TAG = AsyncDataFetcher.class.getSimpleName();
 
         @Override
-        protected Object doInBackground(Object[] params) {
+        protected ArrayList<String> doInBackground(Object[] params) {
 
             HttpURLConnection connection = null;
             BufferedReader reader = null;
+
+            // Will contain the raw JSON response as a string.
+            String jsonStr = null;
 
             try {
                 final String BASE_URL =
@@ -98,7 +162,8 @@ public class BeerListFragment extends Fragment {
                     return null;
                     // TODO: 06/07/2016  
                 }
-                Log.v("returned json: ", buffer.toString());
+                jsonStr = buffer.toString();
+                Log.v("returned json: ", jsonStr);
             } catch (IOException e) {
                 Log.e(LOG_TAG,"" );
                 Log.getStackTraceString(e);
@@ -112,48 +177,87 @@ public class BeerListFragment extends Fragment {
                     }
                 }
             }
+
+            try {
+                ArrayList<String> list = new ArrayList<String>(Arrays.asList(getDataFromJson(jsonStr)));
+                return list;
+            } catch (JSONException e) {
+                Log.e(LOG_TAG, e.getMessage(), e);
+                e.printStackTrace();
+            }
             return null;
+        }
+
+        /**
+         * Take the String representing the complete forecast in JSON Format and
+         * pull out the data we need to construct the Strings needed for the wireframes.
+         *
+         * Fortunately parsing is easy:  constructor takes the JSON string and converts it
+         * into an Object hierarchy for us.
+         */
+        private String[] getDataFromJson(String jsonStr)
+                throws JSONException {
+
+            // These are the names of the JSON objects that need to be extracted.
+            final String BEER_DATA = "data";
+            final String BEER_NAME = "nameDisplay";
+            final String BEER_ABV = "abv";
+            final String BEER_IBU = "ibu";
+            final String BEER_STYLE = "style";
+            final String BEER_STYLE_SHORT_NAME = "shortName";
+            final String BEER_LABELS = "labels";
+            final String BEER_ICON = "icon";
+            final String STRING_FALLBACK = "N/A";
+            // TODO: 09/07/2016
+            final int LIST_SIZE = 10;
+
+
+            JSONObject jsonObj = new JSONObject(jsonStr);
+            JSONArray beerArray = jsonObj.getJSONArray(BEER_DATA);
+
+            // OWM returns daily forecasts based upon the local time of the city that is being
+            // asked for, which means that we need to know the GMT offset to translate this data
+            // properly.
+
+            String[] resultStrs = new String[beerArray.length()];
+            for(int i = 0; i < beerArray.length(); i++) {
+                // Get the JSON object representing a beer
+                JSONObject beerInfo = beerArray.getJSONObject(i);
+                String name = beerInfo.optString(BEER_NAME, STRING_FALLBACK);
+                String abv = beerInfo.optString(BEER_ABV, STRING_FALLBACK);
+                String ibu = beerInfo.optString(BEER_IBU, STRING_FALLBACK);
+                String style = beerInfo.getJSONObject(BEER_STYLE).optString(BEER_STYLE_SHORT_NAME, STRING_FALLBACK);
+                String icon = "";
+                if (beerInfo.has(BEER_LABELS)) {
+                    JSONObject labelsObject = beerInfo.getJSONObject(BEER_LABELS);
+                    icon = labelsObject.optString(BEER_ICON, STRING_FALLBACK);
+                }
+                resultStrs[i] = name+"\nStyle: "+ style+ " ABV:"+abv+"% ibu:"+ibu+" icon: "+icon;
+                Log.v(LOG_TAG, resultStrs[i]);
+            }
+
+            // for (String s : resultStrs) {
+             //  Log.v(LOG_TAG, "Beer entry: " + s);
+            // }
+            return resultStrs;
+
+        }
+
+        @Override
+        protected void onPostExecute(Object result) {
+            if (result != null) {
+                ArrayList array = (ArrayList)result;
+                beerListAdapter.clear();
+                for (int i = 0; i < array.size(); i++) {
+                    beerListAdapter.add((String) array.get(i));
+                }
+            }
+            Log.v(LOG_TAG, "finifshed onPostExecute");
+
         }
     }
 
-    /*
-    //dummy data
-    String[] data = {
-            "Guinness",
-            "Corona",
-            "Budwiser",
-            "zombie",
-            "Duvel",
-            "Guinness",
-            "Corona",
-            "Budwiser",
-            "zombie",
-            "Duvel",
-            "Duvel",
-            "Guinness",
-            "Corona",
-            "Budwiser",
-            "zombie",
-            "Duvel"
-    };
 
-    List<String> nearList = new ArrayList<String>(Arrays.asList(data));
 
-    final ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(this,
-            R.layout.list_item_textview, nearList);
 
-    ListView listView = (ListView) findViewById(R.id.listview_nearby);
-    listView.setAdapter(listAdapter);
-    listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
-        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            // Toast.makeText(MainActivity.this, "Position=" + position, Toast.LENGTH_SHORT).show();
-            String item = listAdapter.getItem(position);
-            Intent intent = new Intent(MainActivity.this, BeerActivity.class);
-            //  Intent intent = new Intent(getActivity(), DetailActivity.class);
-            intent.putExtra(Intent.EXTRA_TEXT, item);
-            startActivity(intent);
-        }
-    });
-    */
 }
