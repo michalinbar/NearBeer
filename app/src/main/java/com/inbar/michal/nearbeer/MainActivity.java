@@ -26,10 +26,6 @@ public class MainActivity extends AppCompatActivity {
                     .add(R.id.beer_list_container, new BeerListFragment()).commit();
 
         }
-
-
     }
-
-
 
 }

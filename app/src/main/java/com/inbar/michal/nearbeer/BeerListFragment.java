@@ -48,24 +48,7 @@ public class BeerListFragment extends Fragment {
 
     }
 
-      /*
 
-    final ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(this,
-            R.layout.list_item_textview, nearList);
-
-    ListView listView = (ListView) findViewById(R.id.listview_nearby);
-    listView.setAdapter(listAdapter);
-    listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
-        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            // Toast.makeText(MainActivity.this, "Position=" + position, Toast.LENGTH_SHORT).show();
-            String item = listAdapter.getItem(position);
-            Intent intent = new Intent(MainActivity.this, BeerActivity.class);
-            //  Intent intent = new Intent(getActivity(), DetailActivity.class);
-            intent.putExtra(Intent.EXTRA_TEXT, item);
-            startActivity(intent);
-        }  });
-    */
     @Nullable
     @Override
     public View onCreateView(final LayoutInflater inflater, @Nullable ViewGroup container,
@@ -208,16 +191,9 @@ public class BeerListFragment extends Fragment {
             final String BEER_LABELS = "labels";
             final String BEER_ICON = "icon";
             final String STRING_FALLBACK = "N/A";
-            // TODO: 09/07/2016
-            final int LIST_SIZE = 10;
-
 
             JSONObject jsonObj = new JSONObject(jsonStr);
             JSONArray beerArray = jsonObj.getJSONArray(BEER_DATA);
-
-            // OWM returns daily forecasts based upon the local time of the city that is being
-            // asked for, which means that we need to know the GMT offset to translate this data
-            // properly.
 
             String[] resultStrs = new String[beerArray.length()];
             for(int i = 0; i < beerArray.length(); i++) {
@@ -236,11 +212,7 @@ public class BeerListFragment extends Fragment {
                 Log.v(LOG_TAG, resultStrs[i]);
             }
 
-            // for (String s : resultStrs) {
-             //  Log.v(LOG_TAG, "Beer entry: " + s);
-            // }
             return resultStrs;
-
         }
 
         @Override
@@ -252,12 +224,8 @@ public class BeerListFragment extends Fragment {
                     beerListAdapter.add((String) array.get(i));
                 }
             }
-            Log.v(LOG_TAG, "finifshed onPostExecute");
-
         }
     }
-
-
 
 
 }
