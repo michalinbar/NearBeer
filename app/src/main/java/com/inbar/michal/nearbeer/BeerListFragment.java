@@ -111,7 +111,7 @@ public class BeerListFragment extends Fragment {
                 final String BASE_URL =
                         "http://api.brewerydb.com/v2/beers?";
                 Uri builtUri = Uri.parse(BASE_URL).buildUpon()
-                        .appendQueryParameter("key", "ac7a853f38efe2216477f97908b55e93")
+                        .appendQueryParameter("key", BuildConfig.BEER_API_KEY)
                         .appendQueryParameter("availableId", "1")
                         .build();
                 URL url = new URL(builtUri.toString());
