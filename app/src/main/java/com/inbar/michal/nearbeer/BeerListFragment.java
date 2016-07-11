@@ -62,7 +62,7 @@ public class BeerListFragment extends Fragment {
                 Beer beer = (Beer)parent.getItemAtPosition(position);
                 Intent intent = new Intent(getActivity(), BeerActivity.class);
                 // TODO: 11/07/2016 pass Beer object
-             //   intent.putExtra(Intent.EXTRA_TEXT, beer);
+                intent.putExtra(Intent.EXTRA_TEXT, beer.toString());
                 startActivity(intent);
             }
         });

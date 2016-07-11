@@ -22,15 +22,11 @@ public class BeerActivity extends AppCompatActivity {
     private final String LOG_TAG = BeerActivity.class.getSimpleName();
 
 
-
-    String beerInfo = "lala";
+    private String beerInfo = "";
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_beer);
-        if (savedInstanceState == null) {
-
-        }
         Intent intent = getIntent();
         if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
             beerInfo = intent.getStringExtra(Intent.EXTRA_TEXT);

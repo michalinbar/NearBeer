@@ -62,5 +62,9 @@ public class Beer {
         return beerArray;
     }
 
+    public String toString(){
+        return name +"\n"+style+"\n"+"abv: "+abv+"%"+ "  ibu: "+ibu;
+    }
+
 
 }
