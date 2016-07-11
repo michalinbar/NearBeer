@@ -6,7 +6,6 @@ import android.os.AsyncTask;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
-import android.text.format.Time;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -15,7 +14,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import org.json.JSONArray;
@@ -27,25 +25,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.zip.Inflater;
 
 /**
  * Created by Michal on 05/07/2016.
  */
 public class BeerListFragment extends Fragment {
 
-    ArrayAdapter<String> beerListAdapter;
+    BeerAdapter adapter;
+    ArrayList<Beer> beerList;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-
     }
 
 
@@ -53,22 +47,22 @@ public class BeerListFragment extends Fragment {
     @Override
     public View onCreateView(final LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-      //  beerListAdapter = new ArrayAdapter<String>(getContext(), R.layout.fragment_beer_list,
-        //        R.id.item_textview, ) {
-        beerListAdapter = new ArrayAdapter<String>(getContext(), R.layout.list_item_textview,
-                        R.id.item_textview);
 
+
+        beerList = new ArrayList<Beer>();
+        adapter = new BeerAdapter(getContext(), beerList);
 
         View rootView = inflater.inflate(R.layout.fragment_beer_list, container, false);
         ListView listView = (ListView) rootView.findViewById(R.id.listview_nearby);
-        listView.setAdapter(beerListAdapter);
+        listView.setAdapter(adapter);
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String item = (String)parent.getItemAtPosition(position);
+                Beer beer = (Beer)parent.getItemAtPosition(position);
                 Intent intent = new Intent(getActivity(), BeerActivity.class);
-                intent.putExtra(Intent.EXTRA_TEXT, item);
+                // TODO: 11/07/2016 pass Beer object
+             //   intent.putExtra(Intent.EXTRA_TEXT, beer);
                 startActivity(intent);
             }
         });
@@ -105,7 +99,7 @@ public class BeerListFragment extends Fragment {
         private final String LOG_TAG = AsyncDataFetcher.class.getSimpleName();
 
         @Override
-        protected ArrayList<String> doInBackground(Object[] params) {
+        protected ArrayList doInBackground(Object[] params) {
 
             HttpURLConnection connection = null;
             BufferedReader reader = null;
@@ -129,7 +123,7 @@ public class BeerListFragment extends Fragment {
 
                 InputStream inputStream = connection.getInputStream();
                 if (inputStream == null){
-                    //// TODO: 06/07/2016
+                    //// TODO: 06/07/2016 handle error
                     Log.e(LOG_TAG, "null input stream");
                     return null;
                 }
@@ -162,8 +156,8 @@ public class BeerListFragment extends Fragment {
             }
 
             try {
-                ArrayList<String> list = new ArrayList<String>(Arrays.asList(getDataFromJson(jsonStr)));
-                return list;
+                return Beer.fromJSON(getDataFromJson(jsonStr));
+
             } catch (JSONException e) {
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
@@ -178,51 +172,22 @@ public class BeerListFragment extends Fragment {
          * Fortunately parsing is easy:  constructor takes the JSON string and converts it
          * into an Object hierarchy for us.
          */
-        private String[] getDataFromJson(String jsonStr)
+        private JSONArray getDataFromJson(String jsonStr)
                 throws JSONException {
 
-            // These are the names of the JSON objects that need to be extracted.
-            final String BEER_DATA = "data";
-            final String BEER_NAME = "nameDisplay";
-            final String BEER_ABV = "abv";
-            final String BEER_IBU = "ibu";
-            final String BEER_STYLE = "style";
-            final String BEER_STYLE_SHORT_NAME = "shortName";
-            final String BEER_LABELS = "labels";
-            final String BEER_ICON = "icon";
-            final String STRING_FALLBACK = "N/A";
-
             JSONObject jsonObj = new JSONObject(jsonStr);
+            // TODO: 11/07/2016 refactor
+            final String BEER_DATA = "data";
             JSONArray beerArray = jsonObj.getJSONArray(BEER_DATA);
-
-            String[] resultStrs = new String[beerArray.length()];
-            for(int i = 0; i < beerArray.length(); i++) {
-                // Get the JSON object representing a beer
-                JSONObject beerInfo = beerArray.getJSONObject(i);
-                String name = beerInfo.optString(BEER_NAME, STRING_FALLBACK);
-                String abv = beerInfo.optString(BEER_ABV, STRING_FALLBACK);
-                String ibu = beerInfo.optString(BEER_IBU, STRING_FALLBACK);
-                String style = beerInfo.getJSONObject(BEER_STYLE).optString(BEER_STYLE_SHORT_NAME, STRING_FALLBACK);
-                String icon = "";
-                if (beerInfo.has(BEER_LABELS)) {
-                    JSONObject labelsObject = beerInfo.getJSONObject(BEER_LABELS);
-                    icon = labelsObject.optString(BEER_ICON, STRING_FALLBACK);
-                }
-                resultStrs[i] = name+"\nStyle: "+ style+ " ABV:"+abv+"% ibu:"+ibu+" icon: "+icon;
-                Log.v(LOG_TAG, resultStrs[i]);
-            }
-
-            return resultStrs;
+            return beerArray;
         }
 
         @Override
         protected void onPostExecute(Object result) {
             if (result != null) {
-                ArrayList array = (ArrayList)result;
-                beerListAdapter.clear();
-                for (int i = 0; i < array.size(); i++) {
-                    beerListAdapter.add((String) array.get(i));
-                }
+                beerList = (ArrayList)result;
+                adapter.clear();
+                adapter.addAll(beerList);
             }
         }
     }
